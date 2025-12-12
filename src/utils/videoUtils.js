@@ -2,7 +2,7 @@ import {
   DEFAULT_USER_AGENT,
   RE_YOUTUBE,
   RE_VIDEO_ID,
-} from './constants.js';
+} from '../constants.js';
 
 /**
  * Extracts YouTube video ID from a URL or returns the ID if already provided.

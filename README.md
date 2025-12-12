@@ -6,6 +6,8 @@ A simple, plug-and-play Node.js module that extracts clean transcripts from YouT
 
 - ✅ Extracts transcripts from YouTube videos (manual and auto-generated captions)
 - ✅ Returns transcript segments with text, duration, offset, and language
+- ✅ Multiple output formats: JSON, Text, Markdown, SRT
+- ✅ CLI support for command-line usage
 - ✅ Works without YouTube login
 - ✅ No external dependencies (uses Node.js built-in fetch)
 - ✅ Error handling for videos without captions
@@ -14,15 +16,55 @@ A simple, plug-and-play Node.js module that extracts clean transcripts from YouT
 
 This module requires Node.js 18.0.0 or higher (for built-in fetch support).
 
-No npm installation needed - just copy the `transcript-engine` folder to your project.
+### As a Module
+
+Copy the project folder to your project and import it:
+
+```javascript
+import { getTranscriptFromUrl } from './youtube-transcript-extractor/src/index.js';
+```
+
+### As a CLI Tool (Global Installation)
+
+```bash
+npm install -g .
+```
+
+After installation, you can use the `youtube-transcript` command globally.
 
 ## Quick Start
 
-### Standalone Usage
+### CLI Usage
+
+```bash
+# JSON format (default, outputs to console)
+node src/cli.js https://www.youtube.com/watch?v=dQw4w9WgXcQ
+
+# Text format
+node src/cli.js https://www.youtube.com/watch?v=dQw4w9WgXcQ --format text
+
+# Markdown format with timestamps, save to file
+node src/cli.js https://www.youtube.com/watch?v=dQw4w9WgXcQ --format markdown --output transcript.md --timestamps
+
+# SRT format, save to file
+node src/cli.js https://www.youtube.com/watch?v=dQw4w9WgXcQ --format srt --output transcript.srt
+
+# Show help
+node src/cli.js --help
+```
+
+If installed globally:
+
+```bash
+youtube-transcript https://www.youtube.com/watch?v=dQw4w9WgXcQ --format text
+```
+
+### Module Usage
 
 ```javascript
-import { getTranscriptFromUrl } from './transcript-engine/index.js';
+import { getTranscriptFromUrl } from './src/index.js';
 
+// JSON format (default)
 const result = await getTranscriptFromUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
 
 if (result.error) {
@@ -36,31 +78,42 @@ if (result.error) {
     console.log(`  Duration: ${segment.duration}s, Offset: ${segment.offset}s`);
   });
 }
-```
 
-### Running Tests
+// Text format
+const text = await getTranscriptFromUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ', {
+  format: 'text',
+  formatOptions: { sentencesPerParagraph: 3 }
+});
 
-```bash
-node tests/runTests.js
-```
-
-Or using npm:
-
-```bash
-npm test
+// Markdown format with timestamps, save to file
+await getTranscriptFromUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ', {
+  format: 'markdown',
+  formatOptions: { includeTimestamps: true },
+  outputFile: './transcript.md'
+});
 ```
 
 ## API Reference
 
-### `getTranscriptFromUrl(url)`
+### `getTranscriptFromUrl(url, options)`
 
 Extracts transcript from a YouTube video URL or video ID.
 
 **Parameters:**
 - `url` (string): YouTube video URL (e.g., `https://www.youtube.com/watch?v=VIDEO_ID`) or video ID
+- `options` (Object, optional): Configuration options
+  - `format` (string): Output format - `'json'`, `'text'`, `'markdown'`, or `'srt'` (default: `'json'`)
+  - `outputFile` (string, optional): File path to save output
+  - `formatOptions` (Object, optional): Format-specific options
+    - `sentencesPerParagraph` (number): For `'text'` format - number of sentences per paragraph (default: 3)
+    - `includeTimestamps` (boolean): For `'markdown'` format - include timestamps (default: false)
 
 **Returns:**
-- `Promise<Array|Object>`: Array of transcript segments on success, or error object on failure
+- `Promise<Array|Object|string>`: 
+  - Array of transcript segments (JSON format)
+  - String (text, markdown, or srt formats)
+  - Object with `success`, `file`, and `format` properties (when `outputFile` is specified)
+  - Error object with `error` and `videoId` fields on failure
 
 **Success Response (Array of segments):**
 ```javascript
@@ -187,16 +240,29 @@ main();
 ## Module Structure
 
 ```
-transcript-engine/
-├── index.js                 # Main entry point
-├── services/
-│   ├── fetchTranscript.js   # Fetches transcript XML from YouTube
-│   └── parseTranscript.js   # Parses XML into segment objects
-├── tests/
-│   └── runTests.js         # Test script
+youtube-transcript-extractor/
+├── src/
+│   ├── index.js             # Main entry point (module export)
+│   ├── cli.js               # CLI interface
+│   ├── constants.js         # Constants and regex patterns
+│   ├── formatters/
+│   │   └── index.js         # Format converters (text, markdown, srt, json)
+│   ├── services/
+│   │   ├── fetchTranscript.js   # Fetches transcript XML from YouTube
+│   │   └── parseTranscript.js   # Parses XML into segment objects
+│   └── utils/
+│       ├── videoUtils.js    # Video ID extraction and HTTP utilities
+│       └── fileWriter.js     # File writing utilities
 ├── package.json
 └── README.md
 ```
+
+## Output Formats
+
+- **JSON** (default): Returns an array of segment objects with `text`, `duration`, `offset`, and `lang` properties
+- **Text**: Plain text format with paragraphs (configurable sentences per paragraph)
+- **Markdown**: Markdown formatted text with optional timestamps
+- **SRT**: Standard SRT subtitle format for video players
 
 ## How It Works
 
@@ -205,6 +271,7 @@ transcript-engine/
 3. **Caption Discovery**: Uses YouTube Innertube API to discover available caption tracks
 4. **Transcript Fetching**: Downloads transcript XML from YouTube's caption endpoint
 5. **Parsing**: Parses XML into segment objects with text, duration, offset, and language
+6. **Formatting**: Converts segments to requested format (JSON, text, markdown, or SRT)
 
 ## Error Handling
 

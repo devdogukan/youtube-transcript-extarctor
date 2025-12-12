@@ -5,7 +5,7 @@ import {
   ANDROID_CLIENT_NAME,
   ANDROID_CLIENT_VERSION,
 } from '../constants.js';
-import { retrieveVideoId, defaultFetch } from '../utils.js';
+import { retrieveVideoId, defaultFetch } from '../utils/videoUtils.js';
 
 /**
  * Fetches transcript XML and metadata from YouTube for a given video URL or ID.

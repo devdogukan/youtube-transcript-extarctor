@@ -4,9 +4,10 @@
   "description": "YouTube video transcript extractor - Backend module for extracting transcripts",
   "type": "module",
   "main": "src/index.js",
-  "scripts": {
-    "test": "node tests/runTests.js"
+  "bin": {
+    "youtube-transcript": "./src/cli.js"
   },
+  "scripts": {},
   "keywords": [
     "youtube",
     "transcript",
