@@ -1,0 +1,25 @@
+{
+  "name": "transcript-engine",
+  "version": "1.0.0",
+  "description": "YouTube video transcript extractor - Backend module for extracting transcripts",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "node tests/runTests.js"
+  },
+  "keywords": [
+    "youtube",
+    "transcript",
+    "extractor",
+    "captions"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": ""
+  }
+}
