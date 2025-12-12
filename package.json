@@ -3,11 +3,18 @@
   "version": "1.0.0",
   "description": "YouTube video transcript extractor - Backend module for extracting transcripts",
   "type": "module",
-  "main": "src/index.js",
+  "main": "dist/index.js",
   "bin": {
-    "youtube-transcript": "./src/cli.js"
+    "youtube-transcript": "./dist/cli.js"
   },
-  "scripts": {},
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "@types/node": "^20.10.6"
+  },
   "keywords": [
     "youtube",
     "transcript",

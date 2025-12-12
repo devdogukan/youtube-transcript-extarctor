@@ -6,17 +6,15 @@ import {
   ANDROID_CLIENT_VERSION,
 } from '../constants.js';
 import { retrieveVideoId, defaultFetch } from '../utils/videoUtils.js';
+import { HttpMethod, FetchTranscriptResponse, YouTubePlayerResponse, CaptionTracklistRenderer, CaptionTrack } from '../types.js';
 
 /**
  * Fetches transcript XML and metadata from YouTube for a given video URL or ID.
- * @param {string} url - YouTube video URL or 11-character video ID
- * @returns {Promise<Object>} Object containing transcriptXml, videoId, and lang
- * @returns {string} returns.transcriptXml - The raw XML transcript data
- * @returns {string} returns.videoId - The extracted video ID
- * @returns {string} returns.lang - The language code of the transcript
+ * @param url - YouTube video URL or 11-character video ID
+ * @returns Object containing transcriptXml, videoId, and lang
  * @throws {Error} If video is unavailable, transcript is not available, or rate limited
  */
-export async function fetchTranscript(url) {
+export async function fetchTranscript(url: string): Promise<FetchTranscriptResponse> {
   const identifier = retrieveVideoId(url);
 
   const watchUrl = `https://www.youtube.com/watch?v=${identifier}`;
@@ -54,7 +52,7 @@ export async function fetchTranscript(url) {
 
   const playerRes = await defaultFetch({
     url: playerEndpoint,
-    method: 'POST',
+    method: HttpMethod.POST,
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(playerBody),
   });
@@ -63,13 +61,13 @@ export async function fetchTranscript(url) {
     throw new Error(`Video unavailable: ${identifier}`);
   }
 
-  const playerJson = await playerRes.json();
+  const playerJson: YouTubePlayerResponse = await playerRes.json();
 
-  const tracklist =
+  const tracklist: CaptionTracklistRenderer | undefined =
     playerJson?.captions?.playerCaptionsTracklistRenderer ??
     playerJson?.playerCaptionsTracklistRenderer;
 
-  const tracks = tracklist?.captionTracks;
+  const tracks: CaptionTrack[] | undefined = tracklist?.captionTracks;
   const isPlayableOk = playerJson?.playabilityStatus?.status === 'OK';
 
   if (!playerJson?.captions || !tracklist) {
@@ -101,7 +99,7 @@ export async function fetchTranscript(url) {
   }
 
   const transcriptXml = await transcriptResponse.text();
-  const lang = selectedTrack.languageCode;
+  const lang = selectedTrack.languageCode || '';
 
   return {
     transcriptXml,

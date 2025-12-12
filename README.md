@@ -8,19 +8,37 @@ A simple, plug-and-play Node.js module that extracts clean transcripts from YouT
 - ✅ Returns transcript segments with text, duration, offset, and language
 - ✅ Multiple output formats: JSON, Text, Markdown, SRT
 - ✅ CLI support for command-line usage
+- ✅ Written in TypeScript with full type definitions
 - ✅ Works without YouTube login
-- ✅ No external dependencies (uses Node.js built-in fetch)
+- ✅ Minimal dependencies (TypeScript for development, Node.js built-in fetch)
 - ✅ Error handling for videos without captions
 
 ## Installation
 
 This module requires Node.js 18.0.0 or higher (for built-in fetch support).
 
+### Building the Project
+
+First, install dependencies and build the TypeScript code:
+
+```bash
+npm install
+npm run build
+```
+
+This will compile TypeScript files from `src/` to `dist/`.
+
 ### As a Module
 
-Copy the project folder to your project and import it:
+After building, import from the compiled output:
 
 ```javascript
+import { getTranscriptFromUrl } from './youtube-transcript-extractor/dist/index.js';
+```
+
+Or if using TypeScript in your project, you can import directly from source:
+
+```typescript
 import { getTranscriptFromUrl } from './youtube-transcript-extractor/src/index.js';
 ```
 
@@ -38,19 +56,19 @@ After installation, you can use the `youtube-transcript` command globally.
 
 ```bash
 # JSON format (default, outputs to console)
-node src/cli.js https://www.youtube.com/watch?v=dQw4w9WgXcQ
+node dist/cli.js https://www.youtube.com/watch?v=dQw4w9WgXcQ
 
 # Text format
-node src/cli.js https://www.youtube.com/watch?v=dQw4w9WgXcQ --format text
+node dist/cli.js https://www.youtube.com/watch?v=dQw4w9WgXcQ --format text
 
 # Markdown format with timestamps, save to file
-node src/cli.js https://www.youtube.com/watch?v=dQw4w9WgXcQ --format markdown --output transcript.md --timestamps
+node dist/cli.js https://www.youtube.com/watch?v=dQw4w9WgXcQ --format markdown --output transcript.md --timestamps
 
 # SRT format, save to file
-node src/cli.js https://www.youtube.com/watch?v=dQw4w9WgXcQ --format srt --output transcript.srt
+node dist/cli.js https://www.youtube.com/watch?v=dQw4w9WgXcQ --format srt --output transcript.srt
 
 # Show help
-node src/cli.js --help
+node dist/cli.js --help
 ```
 
 If installed globally:
@@ -61,16 +79,18 @@ youtube-transcript https://www.youtube.com/watch?v=dQw4w9WgXcQ --format text
 
 ### Module Usage
 
+**JavaScript:**
+
 ```javascript
-import { getTranscriptFromUrl } from './src/index.js';
+import { getTranscriptFromUrl } from './dist/index.js';
 
 // JSON format (default)
 const result = await getTranscriptFromUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
 
-if (result.error) {
+if (typeof result === 'object' && !Array.isArray(result) && 'error' in result) {
   console.log('Error:', result.error);
   console.log('Video ID:', result.videoId);
-} else {
+} else if (Array.isArray(result)) {
   // result is an array of transcript segments
   console.log(`Found ${result.length} segments`);
   result.forEach((segment, index) => {
@@ -93,27 +113,102 @@ await getTranscriptFromUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ', {
 });
 ```
 
+**TypeScript:**
+
+```typescript
+import { getTranscriptFromUrl, OutputFormat } from './src/index.js';
+import type { TranscriptSegment } from './src/types.js';
+
+// JSON format (default)
+const result = await getTranscriptFromUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+
+if (typeof result === 'object' && !Array.isArray(result) && 'error' in result) {
+  console.log('Error:', result.error);
+  console.log('Video ID:', result.videoId);
+} else if (Array.isArray(result)) {
+  // TypeScript knows result is TranscriptSegment[]
+  const segments: TranscriptSegment[] = result;
+  console.log(`Found ${segments.length} segments`);
+  segments.forEach((segment, index) => {
+    console.log(`Segment ${index + 1}:`, segment.text);
+    console.log(`  Duration: ${segment.duration}s, Offset: ${segment.offset}s`);
+  });
+}
+
+// Text format with enum
+const text = await getTranscriptFromUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ', {
+  format: OutputFormat.TEXT,
+  formatOptions: { sentencesPerParagraph: 3 }
+});
+
+// Markdown format with timestamps, save to file
+await getTranscriptFromUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ', {
+  format: OutputFormat.MARKDOWN,
+  formatOptions: { includeTimestamps: true },
+  outputFile: './transcript.md'
+});
+```
+
 ## API Reference
 
 ### `getTranscriptFromUrl(url, options)`
 
 Extracts transcript from a YouTube video URL or video ID.
 
+**TypeScript Signature:**
+```typescript
+function getTranscriptFromUrl(
+  url: string,
+  options?: TranscriptOptions
+): Promise<TranscriptResponse>
+```
+
 **Parameters:**
 - `url` (string): YouTube video URL (e.g., `https://www.youtube.com/watch?v=VIDEO_ID`) or video ID
-- `options` (Object, optional): Configuration options
-  - `format` (string): Output format - `'json'`, `'text'`, `'markdown'`, or `'srt'` (default: `'json'`)
+- `options` (TranscriptOptions, optional): Configuration options
+  - `format` (OutputFormat | string): Output format - `OutputFormat.JSON`, `OutputFormat.TEXT`, `OutputFormat.MARKDOWN`, or `OutputFormat.SRT` (default: `OutputFormat.JSON`)
   - `outputFile` (string, optional): File path to save output
-  - `formatOptions` (Object, optional): Format-specific options
+  - `formatOptions` (FormatOptions, optional): Format-specific options
     - `sentencesPerParagraph` (number): For `'text'` format - number of sentences per paragraph (default: 3)
     - `includeTimestamps` (boolean): For `'markdown'` format - include timestamps (default: false)
 
 **Returns:**
-- `Promise<Array|Object|string>`: 
-  - Array of transcript segments (JSON format)
-  - String (text, markdown, or srt formats)
-  - Object with `success`, `file`, and `format` properties (when `outputFile` is specified)
-  - Error object with `error` and `videoId` fields on failure
+- `Promise<TranscriptResponse>`: 
+  - `TranscriptSegment[]` - Array of transcript segments (JSON format)
+  - `string` - Formatted string (text, markdown, or srt formats)
+  - `{ success: true; file: string; format: string }` - Success object (when `outputFile` is specified)
+  - `{ error: string; videoId: string }` - Error object on failure
+
+**Type Definitions:**
+```typescript
+// Available enums
+enum OutputFormat {
+  JSON = 'json',
+  TEXT = 'text',
+  MARKDOWN = 'markdown',
+  SRT = 'srt'
+}
+
+// Transcript segment structure
+interface TranscriptSegment {
+  text: string;
+  duration: number;
+  offset: number;
+  lang: string;
+}
+
+// Options interface
+interface TranscriptOptions {
+  format?: OutputFormat | string;
+  outputFile?: string;
+  formatOptions?: FormatOptions;
+}
+
+interface FormatOptions {
+  sentencesPerParagraph?: number;
+  includeTimestamps?: boolean;
+}
+```
 
 **Success Response (Array of segments):**
 ```javascript
@@ -146,57 +241,60 @@ Extracts transcript from a YouTube video URL or video ID.
 
 ### Next.js API Route
 
-```javascript
-// pages/api/transcript.js or app/api/transcript/route.js
-import { getTranscriptFromUrl } from '../../../transcript-engine/index.js';
+```typescript
+// pages/api/transcript.ts or app/api/transcript/route.ts
+import { getTranscriptFromUrl } from '../../../transcript-engine/dist/index.js';
+import type { NextApiRequest, NextApiResponse } from 'next';
 
-export default async function handler(req, res) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { url } = req.query;
 
-  if (!url) {
+  if (!url || typeof url !== 'string') {
     return res.status(400).json({ error: 'URL parameter is required' });
   }
 
   try {
     const result = await getTranscriptFromUrl(url);
     
-    if (result.error) {
+    if (typeof result === 'object' && !Array.isArray(result) && 'error' in result) {
       return res.status(404).json(result);
     }
     
     return res.status(200).json(result);
   } catch (error) {
-    return res.status(500).json({ error: error.message });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return res.status(500).json({ error: errorMessage });
   }
 }
 ```
 
 ### Express Server
 
-```javascript
-// server.js
+```typescript
+// server.ts
 import express from 'express';
-import { getTranscriptFromUrl } from './transcript-engine/index.js';
+import { getTranscriptFromUrl } from './transcript-engine/dist/index.js';
 
 const app = express();
 
 app.get('/api/transcript', async (req, res) => {
   const { url } = req.query;
 
-  if (!url) {
+  if (!url || typeof url !== 'string') {
     return res.status(400).json({ error: 'URL parameter is required' });
   }
 
   try {
     const result = await getTranscriptFromUrl(url);
     
-    if (result.error) {
+    if (typeof result === 'object' && !Array.isArray(result) && 'error' in result) {
       return res.status(404).json(result);
     }
     
     return res.status(200).json(result);
   } catch (error) {
-    return res.status(500).json({ error: error.message });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return res.status(500).json({ error: errorMessage });
   }
 });
 
@@ -207,31 +305,35 @@ app.listen(3000, () => {
 
 ### Standalone Node Module
 
-```javascript
-// my-script.js
-import { getTranscriptFromUrl } from './transcript-engine/index.js';
+```typescript
+// my-script.ts
+import { getTranscriptFromUrl } from './transcript-engine/dist/index.js';
+import type { TranscriptSegment } from './transcript-engine/src/types.js';
 
-async function main() {
+async function main(): Promise<void> {
   const videoUrl = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
   const result = await getTranscriptFromUrl(videoUrl);
 
-  if (result.error) {
+  if (typeof result === 'object' && !Array.isArray(result) && 'error' in result) {
     console.error('Failed to get transcript:', result.error);
     return;
   }
 
-  // result is an array of segments
-  console.log(`Found ${result.length} transcript segments`);
-  
-  // Combine all text
-  const fullText = result.map(segment => segment.text).join(' ');
-  console.log('\n--- Full Transcript ---');
-  console.log(fullText);
-  
-  // Or work with individual segments
-  result.forEach((segment, index) => {
-    console.log(`\n[${segment.offset}s] ${segment.text}`);
-  });
+  if (Array.isArray(result)) {
+    // TypeScript knows result is TranscriptSegment[]
+    const segments: TranscriptSegment[] = result;
+    console.log(`Found ${segments.length} transcript segments`);
+    
+    // Combine all text
+    const fullText = segments.map(segment => segment.text).join(' ');
+    console.log('\n--- Full Transcript ---');
+    console.log(fullText);
+    
+    // Or work with individual segments
+    segments.forEach((segment, index) => {
+      console.log(`\n[${segment.offset}s] ${segment.text}`);
+    });
+  }
 }
 
 main();
@@ -241,18 +343,21 @@ main();
 
 ```
 youtube-transcript-extractor/
-├── src/
-│   ├── index.js             # Main entry point (module export)
-│   ├── cli.js               # CLI interface
-│   ├── constants.js         # Constants and regex patterns
+├── src/                      # TypeScript source files
+│   ├── index.ts              # Main entry point (module export)
+│   ├── cli.ts                # CLI interface
+│   ├── constants.ts          # Constants and regex patterns
+│   ├── types.ts              # TypeScript type definitions and enums
 │   ├── formatters/
-│   │   └── index.js         # Format converters (text, markdown, srt, json)
+│   │   └── index.ts          # Format converters (text, markdown, srt, json)
 │   ├── services/
-│   │   ├── fetchTranscript.js   # Fetches transcript XML from YouTube
-│   │   └── parseTranscript.js   # Parses XML into segment objects
+│   │   ├── fetchTranscript.ts   # Fetches transcript XML from YouTube
+│   │   └── parseTranscript.ts   # Parses XML into segment objects
 │   └── utils/
-│       ├── videoUtils.js    # Video ID extraction and HTTP utilities
-│       └── fileWriter.js     # File writing utilities
+│       ├── videoUtils.ts     # Video ID extraction and HTTP utilities
+│       └── fileWriter.ts     # File writing utilities
+├── dist/                     # Compiled JavaScript (generated after build)
+├── tsconfig.json             # TypeScript configuration
 ├── package.json
 └── README.md
 ```
@@ -287,7 +392,25 @@ All errors return a JSON response with `error` and `videoId` fields.
 ## Requirements
 
 - Node.js >= 18.0.0 (for built-in fetch API)
-- No external dependencies required
+- TypeScript >= 5.3.3 (for development)
+- @types/node >= 20.10.6 (for TypeScript types)
+
+## Development
+
+To work with the source code:
+
+```bash
+# Install dependencies
+npm install
+
+# Build TypeScript to JavaScript
+npm run build
+
+# Watch mode for development
+npm run dev
+```
+
+The compiled JavaScript files will be output to the `dist/` directory.
 
 ## License
 
@@ -299,4 +422,6 @@ MIT
 - Supports both manual and auto-generated captions
 - Works with any public YouTube video that has captions available
 - The module is designed to be simple, modular, and easy to integrate
+- Written in TypeScript with full type safety and IntelliSense support
+- All types and enums are exported from `src/types.ts` for use in TypeScript projects
 

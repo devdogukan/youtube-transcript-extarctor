@@ -1,21 +1,22 @@
 #!/usr/bin/env node
 
 import { getTranscriptFromUrl } from './index.js';
+import { OutputFormat, ParsedArgs, TranscriptOptions } from './types.js';
 
 /**
  * Parses command line arguments
- * @returns {Object} Parsed options
+ * @returns Parsed options
  */
-function parseArgs() {
+function parseArgs(): ParsedArgs {
   const args = process.argv.slice(2);
   
   if (args.length === 0 || args.includes('--help') || args.includes('-h')) {
     return { help: true };
   }
 
-  const options = {
+  const options: ParsedArgs = {
     url: null,
-    format: 'json',
+    format: OutputFormat.JSON,
     output: null,
     sentencesPerParagraph: 3,
     timestamps: false,
@@ -27,7 +28,7 @@ function parseArgs() {
     if (arg.startsWith('--format') || arg === '-f') {
       const value = arg.includes('=') ? arg.split('=')[1] : args[++i];
       if (value && ['json', 'text', 'markdown', 'srt'].includes(value.toLowerCase())) {
-        options.format = value.toLowerCase();
+        options.format = value.toLowerCase() as OutputFormat | string;
       }
     } else if (arg.startsWith('--output') || arg === '-o') {
       const value = arg.includes('=') ? arg.split('=')[1] : args[++i];
@@ -48,7 +49,7 @@ function parseArgs() {
 /**
  * Displays help message
  */
-function showHelp() {
+function showHelp(): void {
   console.log(`
 YouTube Transcript Extractor - CLI
 
@@ -83,7 +84,7 @@ Examples:
 /**
  * Main CLI function
  */
-async function main() {
+async function main(): Promise<void> {
   const options = parseArgs();
 
   if (options.help) {
@@ -98,21 +99,22 @@ async function main() {
   }
 
   try {
-    const formatOptions = {};
+    const formatOptions: TranscriptOptions['formatOptions'] = {};
     
-    if (options.format === 'text') {
+    if (options.format === OutputFormat.TEXT || options.format === 'text') {
       formatOptions.sentencesPerParagraph = options.sentencesPerParagraph;
-    } else if (options.format === 'markdown') {
+    } else if (options.format === OutputFormat.MARKDOWN || options.format === 'markdown') {
       formatOptions.includeTimestamps = options.timestamps;
     }
 
     const result = await getTranscriptFromUrl(options.url, {
       format: options.format,
-      outputFile: options.output,
+      outputFile: options.output || undefined,
       formatOptions,
     });
 
-    if (result.error) {
+    // Check if result is an error object
+    if (typeof result === 'object' && !Array.isArray(result) && 'error' in result) {
       console.error(`Error: ${result.error}`);
       if (result.videoId && result.videoId !== 'unknown') {
         console.error(`Video ID: ${result.videoId}`);
@@ -120,7 +122,8 @@ async function main() {
       process.exit(1);
     }
 
-    if (result.success) {
+    // Check if result is a success object
+    if (typeof result === 'object' && !Array.isArray(result) && 'success' in result && result.success) {
       console.log(`✓ Successfully saved transcript to ${result.file}`);
       console.log(`Format: ${result.format}`);
     } else {
@@ -132,7 +135,8 @@ async function main() {
       }
     }
   } catch (error) {
-    console.error(`Error: ${error.message}`);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error(`Error: ${errorMessage}`);
     process.exit(1);
   }
 }
