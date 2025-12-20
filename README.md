@@ -7,6 +7,7 @@ A simple, plug-and-play Node.js module that extracts clean transcripts from YouT
 - ✅ Extracts transcripts from YouTube videos (manual and auto-generated captions)
 - ✅ Returns transcript segments with text, duration, offset, and language
 - ✅ Multiple output formats: JSON, Text, Markdown, SRT
+- ✅ Automatic HTML entity decoding (converts `&amp;#39;` to `'`, etc.)
 - ✅ CLI support for command-line usage
 - ✅ Written in TypeScript with full type definitions
 - ✅ Works without YouTube login
@@ -355,7 +356,8 @@ youtube-transcript-extractor/
 │   │   └── parseTranscript.ts   # Parses XML into segment objects
 │   └── utils/
 │       ├── videoUtils.ts     # Video ID extraction and HTTP utilities
-│       └── fileWriter.ts     # File writing utilities
+│       ├── fileWriter.ts     # File writing utilities
+│       └── htmlEntities.ts   # HTML entity decoding utilities
 ├── dist/                     # Compiled JavaScript (generated after build)
 ├── tsconfig.json             # TypeScript configuration
 ├── package.json
@@ -376,7 +378,8 @@ youtube-transcript-extractor/
 3. **Caption Discovery**: Uses YouTube Innertube API to discover available caption tracks
 4. **Transcript Fetching**: Downloads transcript XML from YouTube's caption endpoint
 5. **Parsing**: Parses XML into segment objects with text, duration, offset, and language
-6. **Formatting**: Converts segments to requested format (JSON, text, markdown, or SRT)
+6. **HTML Entity Decoding**: Automatically decodes HTML entities (e.g., `&amp;#39;` → `'`, `&amp;quot;` → `"`) to ensure clean, readable text
+7. **Formatting**: Converts segments to requested format (JSON, text, markdown, or SRT)
 
 ## Error Handling
 

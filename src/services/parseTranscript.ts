@@ -1,5 +1,6 @@
 import { RE_XML_TRANSCRIPT } from '../constants.js';
 import { TranscriptSegment } from '../types.js';
+import { decodeHtmlEntities } from '../utils/htmlEntities.js';
 
 /**
  * Parses YouTube transcript XML into an array of segment objects.
@@ -16,7 +17,7 @@ export function parseTranscript(transcriptXml: string, lang: string): Transcript
   }
 
   const segments: TranscriptSegment[] = results.map((match) => ({
-    text: match[3],
+    text: decodeHtmlEntities(match[3]),
     duration: parseFloat(match[2]),
     offset: parseFloat(match[1]),
     lang,
